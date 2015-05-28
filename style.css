@@ -1,0 +1,13 @@
+html, body, canvas, p{
+    margin: 0;
+    padding: 0;
+}
+html, body{
+    font-family: Tahoma, Geneva, Kalimati, sans-serif;
+    text-align: center;
+    color: #424242;
+    background-color: #f7f7f7;
+}
+canvas{
+    background-color: #fff;
+}
