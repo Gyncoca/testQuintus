@@ -38,6 +38,9 @@ Q.scene('startGame', function(stage) { // On crée une nouvelle scène que l'on 
 
 	stage.insert(sprite_bg);
 	
+	var img_bg = new Q.Sprite({ x: Q.width/2, y: Q.height/2, w: Q.width, h: Q.height, tileW: Q.width, tileH: Q.width, asset: 'ghost.png'}); // On ajoute notre image en spécifiant l'asset à utiliser, les dimensions à lui donner et la partie de l'image à utiliser (ici 600x800, soit la taille du canvas)
+	stage.insert(img_bg); // Ne pas oublier d'insérer l'image (à noter que vous pouvez tout faire en une seule ligne, comme déjà vu plus tôt)
+	
 	var title = stage.insert(new Q.UI.Text({
 		x: Q.width/2,
 		y: 50,
@@ -67,5 +70,10 @@ Q.scene('startGame', function(stage) { // On crée une nouvelle scène que l'on 
 	
 });
 
-Q.stageScene('startGame', 0); // On affiche notre scène au rang 0, soit tout en bas de la pile (pensez à des calques, comme sous votre logiciel de dessin préféré ou à un z-index en CSS)
-
+Q.load(['ghost.png' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
+    Q.stageScene('startGame', 0);
+}, {
+    progressCallback: function(loaded, total) {
+        console.log('Chargement : ' + Math.floor(loaded/total*100) + '%'); // On affiche le pourcentage dans la console
+    }
+});
