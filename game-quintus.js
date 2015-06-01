@@ -21,6 +21,34 @@ Q.controls();
 Q.touch();
 
 
+Q.load(['ghost.png','ciel.jpg','sol.jpg','littleGhost.png' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
+    
+	Q.sheet('my_tiles', 'sol.jpg', { tileW: 30, tileH: 30 }); // On crée des tiles de 30x30 à partir de l'image que l'on vient de charger et on enregistre le tout sou le nom *my_tiles*
+	Q.sheet('my_player', 'littleGhost.png', { tileW: 25, tileH: 30 }); // On crée la feuille du joueur, qui permet de décomposer les états (pour l'animer par exemple)
+	Q.stageScene('startGame', 0);
+	}, {
+    progressCallback: function(loaded, total) {
+        console.log('Chargement : ' + Math.floor(loaded/total*100) + '%'); // On affiche le pourcentage dans la console
+    }
+});
+
+Q.Sprite.extend('Player',{
+    init: function(p) {
+        this._super(p, {
+            sheet: 'my_player',
+            sprite: 'my_player', // On indique le sprite
+            collisionMask: Q.SPRITE_DEFAULT, // On verra ça au moment de la gestion des collisions
+            speed: 300,
+            jumpSpeed: -500, // Pour sauter plus haut, on diminue la valeur
+            direction: null // Par défaut il n'y a pas de direction, notre joueur est statique
+        });
+
+        this.add('2d, platformerControls');
+
+        //this.play('stand');
+    }
+});
+
 Q.scene('startGame', function(stage) { // On crée une nouvelle scène que l'on nomme. Une fois affichée la fonction sera appelée, avec en paramètre notre objet scène (dont on récupèrera quelques infos et auquel on balancera quelques objets)
     console.log('Écran de lancement affiché');
 	
@@ -77,8 +105,25 @@ Q.scene('startGame', function(stage) { // On crée une nouvelle scène que l'on 
 Q.scene('game', function(stage) {
     console.log('Niveau 1 !');
 	stage.insert(new Q.Repeater({ asset: 'ciel.jpg', speedY: 0.5 })); // L'image ne se répète qu'à la verticale et avance moitié moins vite que le joueur
+	  /* On pourra mettre la majorité du code du niveau ici */
+	var tiles = new Q.TileLayer({
+		dataAsset: 'game.json', // Nom du fichier tileset
+		sheet: 'my_tiles', // Nom des tiles
+		tileW: Q.sheets['my_tiles'].tileW, // Dimensions des tiles : on va les chercher directement depuis la feuille que l'on a crÃ©Ã©e au chargement
+		tileH: Q.sheets['my_tiles'].tileH
+	});
+	
+	stage.collisionLayer(tiles);
+	
+	var player = new Q.Player(); // On crée notre joueur avec une vitesse de départ
+	player.p.x = tiles.p.w / 2; // On place notre joueur horizontalement au centre…
+	player.p.y = tiles.p.h - player.p.cy; // … et verticalement en bas
 
-    /* On pourra mettre la majorité du code du niveau ici */
+	stage.insert(player);
+	
+	stage.add('viewport').follow(player, { x: false, y :true }, { minX:0, maxX: tiles.p.w, maxY: tiles.p.h} );
+	
+
 });
 
 
@@ -91,10 +136,4 @@ function moveSheep() {
     this.animate({ y: this.p.cy+20 }, 1.5, Q.Easing.Quadratic.InOut, {}).chain({ y: this.p.cy+140 }, 1.5, Q.Easing.Quadratic.InOut, { callback: moveSheep });
 }
 
-Q.load(['ghost.png','ciel.jpg','sol.jpg','littleGhost.png' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
-    Q.stageScene('startGame', 0);
-}, {
-    progressCallback: function(loaded, total) {
-        console.log('Chargement : ' + Math.floor(loaded/total*100) + '%'); // On affiche le pourcentage dans la console
-    }
-});
+
