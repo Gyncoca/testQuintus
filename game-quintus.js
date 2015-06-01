@@ -38,8 +38,11 @@ Q.scene('startGame', function(stage) { // On crée une nouvelle scène que l'on 
 
 	stage.insert(sprite_bg);
 	
-	var img_bg = new Q.Sprite({ x: Q.width/2, y: Q.height/2, w: Q.width, h: Q.height, tileW: Q.width, tileH: Q.width, asset: 'ghost.png'}); // On ajoute notre image en spécifiant l'asset à utiliser, les dimensions à lui donner et la partie de l'image à utiliser (ici 600x800, soit la taille du canvas)
+	var img_bg = new Q.Sprite({ x: Q.width/2, y: 70+Q.height/2, w: Q.width, h: Q.height, tileW: Q.width, tileH: Q.width, asset: 'ghost.png'}); // On ajoute notre image en spécifiant l'asset à utiliser, les dimensions à lui donner et la partie de l'image à utiliser (ici 600x800, soit la taille du canvas)
+		
 	stage.insert(img_bg); // Ne pas oublier d'insérer l'image (à noter que vous pouvez tout faire en une seule ligne, comme déjà vu plus tôt)
+	img_bg.add('tween');
+	moveSheep.apply(img_bg);
 	
 	var title = stage.insert(new Q.UI.Text({
 		x: Q.width/2,
@@ -70,7 +73,25 @@ Q.scene('startGame', function(stage) { // On crée une nouvelle scène que l'on 
 	
 });
 
-Q.load(['ghost.png' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
+
+Q.scene('game', function(stage) {
+    console.log('Niveau 1 !');
+	stage.insert(new Q.Repeater({ asset: 'ciel.jpg', speedY: 0.5 })); // L'image ne se répète qu'à la verticale et avance moitié moins vite que le joueur
+
+    /* On pourra mettre la majorité du code du niveau ici */
+});
+
+
+
+
+
+
+
+function moveSheep() {
+    this.animate({ y: this.p.cy+20 }, 1.5, Q.Easing.Quadratic.InOut, {}).chain({ y: this.p.cy+140 }, 1.5, Q.Easing.Quadratic.InOut, { callback: moveSheep });
+}
+
+Q.load(['ghost.png','ciel.jpg','sol.jpg','littleGhost.png' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
     Q.stageScene('startGame', 0);
 }, {
     progressCallback: function(loaded, total) {
