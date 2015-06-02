@@ -21,16 +21,7 @@ Q.controls();
 Q.touch();
 
 
-Q.load(['ghost.png','ciel.jpg','sol.jpg','littleGhost.png' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
-    
-	Q.sheet('my_tiles', 'sol.jpg', { tileW: 30, tileH: 30 }); // On crée des tiles de 30x30 à partir de l'image que l'on vient de charger et on enregistre le tout sou le nom *my_tiles*
-	Q.sheet('my_player', 'littleGhost.png', { tileW: 25, tileH: 30 }); // On crée la feuille du joueur, qui permet de décomposer les états (pour l'animer par exemple)
-	Q.stageScene('startGame', 0);
-	}, {
-    progressCallback: function(loaded, total) {
-        console.log('Chargement : ' + Math.floor(loaded/total*100) + '%'); // On affiche le pourcentage dans la console
-    }
-});
+
 
 Q.Sprite.extend('Player',{
     init: function(p) {
@@ -106,6 +97,10 @@ Q.scene('game', function(stage) {
     console.log('Niveau 1 !');
 	stage.insert(new Q.Repeater({ asset: 'ciel.jpg', speedY: 0.5 })); // L'image ne se répète qu'à la verticale et avance moitié moins vite que le joueur
 	  /* On pourra mettre la majorité du code du niveau ici */
+	Q.sheet('my_tiles', 'wall.png', { tileW: 30, tileH: 30 }); // On crée des tiles de 30x30 à partir de l'image que l'on vient de charger et on enregistre le tout sou le nom *my_tiles*
+	Q.sheet('my_player', 'littleGhost.png', { tileW: 25, tileH: 30 }); // On crée la feuille du joueur, qui permet de décomposer les états (pour l'animer par exemple)
+	
+	
 	var tiles = new Q.TileLayer({
 		dataAsset: 'game.json', // Nom du fichier tileset
 		sheet: 'my_tiles', // Nom des tiles
@@ -126,7 +121,14 @@ Q.scene('game', function(stage) {
 
 });
 
-
+Q.load(['ghost.png','ciel.jpg','wall.png','littleGhost.png','game.json' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
+    
+	Q.stageScene('startGame', 0);
+	}, {
+    progressCallback: function(loaded, total) {
+        console.log('Chargement : ' + Math.floor(loaded/total*100) + '%'); // On affiche le pourcentage dans la console
+    }
+});
 
 
 
