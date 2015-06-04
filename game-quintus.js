@@ -34,10 +34,44 @@ Q.Sprite.extend('Player',{
             direction: null // Par défaut il n'y a pas de direction, notre joueur est statique
         });
 
-        this.add('2d, platformerControls');
+        this.add('2d, platformerControls,animation');
+		
+		this.play('stand');
 
-        //this.play('stand');
-    }
+    },
+	step: function(dt) {
+		// On va déjà éviter que notre joueur ne sorte de la grille…
+		if (this.p.x <= 0) {
+			this.p.x = 0;
+		}
+		else if (this.p.x >= Q.width) {
+			this.p.x = Q.width;
+		}
+
+		// Si on a appuyé sur le bouton pour sauter, on joue l'animation de saut (et on sort de la méthode pour gagner du temps)
+		if (Q.inputs['up']) {
+			this.play('jump');
+			return;
+		}
+
+		// On calcule la variation horizontale pour savoir dans quel sens on bouge
+		if (this.p.vx > 0) {
+			this.p.direction = 'right';
+		}
+		else if (this.p.vx < 0) {
+			this.p.direction = 'left';
+		}
+		else {
+			this.p.direction = null; // Si aucune variation, pas de direction : joueur immobile
+		}
+
+		if (this.p.direction) {
+			this.play('walk_' + this.p.direction); // On joue l'animation qui correspond à notre direction le cas échéant
+		}
+		else {
+			this.play('stand'); // Sinon on affiche un joueur immobile
+		}
+	}
 });
 
 Q.scene('startGame', function(stage) { // On crée une nouvelle scène que l'on nomme. Une fois affichée la fonction sera appelée, avec en paramètre notre objet scène (dont on récupèrera quelques infos et auquel on balancera quelques objets)
@@ -97,10 +131,7 @@ Q.scene('game', function(stage) {
     console.log('Niveau 1 !');
 	stage.insert(new Q.Repeater({ asset: 'ciel.jpg', speedY: 0.5 })); // L'image ne se répète qu'à la verticale et avance moitié moins vite que le joueur
 	  /* On pourra mettre la majorité du code du niveau ici */
-	Q.sheet('my_tiles', 'wall.png', { tileW: 30, tileH: 30 }); // On crée des tiles de 30x30 à partir de l'image que l'on vient de charger et on enregistre le tout sou le nom *my_tiles*
-	Q.sheet('my_player', 'littleGhost.png', { tileW: 25, tileH: 30 }); // On crée la feuille du joueur, qui permet de décomposer les états (pour l'animer par exemple)
-	
-	
+
 	var tiles = new Q.TileLayer({
 		dataAsset: 'game.json', // Nom du fichier tileset
 		sheet: 'my_tiles', // Nom des tiles
@@ -112,8 +143,7 @@ Q.scene('game', function(stage) {
 	
 	var player = new Q.Player(); // On crée notre joueur avec une vitesse de départ
 	player.p.x = tiles.p.w / 2; // On place notre joueur horizontalement au centre…
-	player.p.y = tiles.p.h - player.p.cy; // … et verticalement en bas
-
+	player.p.y = tiles.p.h - (player.p.cy + tiles.p.tileH); // â€¦ et verticalement en bas
 	stage.insert(player);
 	
 	stage.add('viewport').follow(player, { x: false, y :true }, { minX:0, maxX: tiles.p.w, maxY: tiles.p.h} );
@@ -121,8 +151,16 @@ Q.scene('game', function(stage) {
 
 });
 
-Q.load(['ghost.png','ciel.jpg','wall.png','littleGhost.png','game.json' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
-    
+Q.load(['ghost.png','ciel.jpg','méchant.png','wall.png','littleGhost.png','game.json' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
+    Q.sheet('my_tiles', 'wall.png', { tileW: 30, tileH: 30 }); // On crée des tiles de 30x30 à partir de l'image que l'on vient de charger et on enregistre le tout sou le nom *my_tiles*
+	Q.sheet('my_player', 'littleGhost.png', { tileW: 25, tileH: 30 }); // On crée la feuille du joueur, qui permet de décomposer les états (pour l'animer par exemple)
+	Q.animations('my_player', {
+		stand: { frames: [1], rate: 1/60, loop: true },
+		walk_left: { frames: [0], rate: 1/60 },
+		walk_right: { frames: [2], rate: 1/60 },
+		jump: { frames: [3], rate: 1/60 },
+	});
+	
 	Q.stageScene('startGame', 0);
 	}, {
     progressCallback: function(loaded, total) {
