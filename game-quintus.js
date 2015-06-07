@@ -21,7 +21,64 @@ Q.controls();
 Q.touch();
 
 
+Q.Sprite.extend('End', {
+    init: function(p) {
+        this._super(p, { sheet: 'end' });
+    }
+});
 
+Q.Sprite.extend('BadGhost', {
+    init: function(p) {
+        this._super(p, {
+            sheet: 'badGhost',
+            sprite: 'badGhost',
+            vx: -100, // On part vers la gauche par défaut
+            collisionMask: Q.SPRITE_DEFAULT
+        });
+
+        this.add('2d, animation, aiBounce'); // On ajoute un peu d'intelligence artificielle et d'animations (aiBounce sert à gérer les collisions avec les murs, pour faire demi-tour automatiquement)
+		this.on('bump.left, bump.right, bump.bottom', function(collision) {
+		if(collision.obj.isA('Player')) { // S'il rentre dans un joueur, la partie est finie
+			Q.stageScene('endGame', 1, { label: 'Perdu !' }); // Tiens, un paramètre est passé à notre scène, ça vous rappelle quelque chose ?
+			collision.obj.destroy(); // On détruit le joueur, le jeu n'étant pas en pause, pour éviter de lancer plusieurs fois l'écran de fin
+		}
+	});
+
+	this.on('bump.top', this, 'die'); // Si le joueur lui tombe dessus, on lance la méthode `die`
+	},
+	step: function (dt) {
+		if (this.p.x <= 0 || this.p.x >= Q.width) {
+			this.p.vx = -this.p.vx; // S'il va au bord, on inverse sa vitesse pour qu'il fasse demi-tour
+		}
+
+		if (this.p.vx > 0) {
+			this.p.direction = 'right';
+		}
+		else if (this.p.vx < 0) {
+			this.p.direction = 'left';
+		}
+		else {
+			this.p.direction = null;
+		}
+
+		if (this.p.direction) {
+			this.play('walk_' + this.p.direction);
+		}
+
+	},
+	die: function (collision) {
+		this.p.vx = this.p.vy = 0; // Pas bouger !
+		this.play('dying'); // Fais le mort
+
+		(function (bghost) {
+			setTimeout(function() {
+				bghost.destroy(); // On attend un peu puis on le détruit (il ne gênera pas les autres loups ou le joueur, comme ça)
+			}, 300);
+		})(this);
+
+		collision.obj.p.vy = -300; // On fait rebondir le joueur
+	}
+});
 
 Q.Sprite.extend('Player',{
     init: function(p) {
@@ -35,6 +92,14 @@ Q.Sprite.extend('Player',{
         });
 
         this.add('2d, platformerControls,animation');
+		
+		this.on('hit.sprite',function(collision) { // Quand le joueur entre en collision avec un autre Sprite
+			if(collision.obj.isA('End')) { // S'il s'agit d'une bergerie
+				console.log('Bienvenue à la fin du niveau !');
+				Q.stageScene('endGame', 1, { label: 'Gagné !' }); // On lance l'écran de fin avec un message personnalisé
+				this.destroy(); // On détruit notre joueur, vu que la partie est terminée
+			}
+		});
 		
 		this.play('stand');
 
@@ -141,25 +206,75 @@ Q.scene('game', function(stage) {
 	
 	stage.collisionLayer(tiles);
 	
+	stage.insert(new Q.End({ // Il faut positionner le centre du sprite, qui sera tout en haut à droite de la scène
+		x: tiles.p.w - Q.sheets['end'].tileW/2, // Calé à droite
+		y: Q.sheets['end'].tileW/2-20 // Calé en haut
+	}));
 	var player = new Q.Player(); // On crée notre joueur avec une vitesse de départ
 	player.p.x = tiles.p.w / 2; // On place notre joueur horizontalement au centre…
 	player.p.y = tiles.p.h - (player.p.cy + tiles.p.tileH); // â€¦ et verticalement en bas
 	stage.insert(player);
+	
+	stage.insert(new Q.BadGhost({ x: tiles.p.w/2, y: tiles.p.h/2 })); // Au milieu de la carte
+	stage.insert(new Q.BadGhost({ x: tiles.p.w/4, y: tiles.p.h - (player.p.cy + tiles.p.tileH) })); // En bas à gauche, pas loin du joueur (sinon ce serait trop simple)
+	stage.insert(new Q.BadGhost({ x: tiles.p.w - Q.sheets['end'].tileW * 2, y: 0, vy: 100 })); // Celui-ci part de la bergerie, attention !
+		
+	
 	
 	stage.add('viewport').follow(player, { x: false, y :true }, { minX:0, maxX: tiles.p.w, maxY: tiles.p.h} );
 	
 
 });
 
-Q.load(['ghost.png','ciel.jpg','méchant.png','wall.png','littleGhost.png','game.json' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
+Q.scene('endGame', function (stage) {
+    var container = stage.insert(new Q.UI.Container({
+        x: Q.width/2,
+        y: Q.height/2,
+        fill: 'rgba(0, 0, 0, 0.5)',
+        radius: 5
+    }));
+	
+	var button_y = 0;
+	if (stage.options.label) {
+		container.insert(new Q.UI.Text({
+			x: 0,
+			y: 0,
+			color: '#ffffff',
+			align: 'center',
+			label: stage.options.label
+		}));
+		button_y += Math.ceil(container.children[container.children.length - 1].p.h) + 10;
+
+	}
+
+    var button = container.insert(new Q.UI.Button({ x: 0, y: button_y, fill: '#f7f7f7', label: 'Rejouer', highlight: '#ffffff', radius: 2 }));
+
+    button.on('click', function() { // On place un écouteur sur le bouton, mais vous savez déjà faire normalement…
+        Q.clearStages(); // On vide les scènes affichées, pour repartir sur un canvas vierge
+        console.log('Bouton cliqué, redémarrage du jeu…');
+        Q.stageScene('game', 0); // On relance le jeu
+    });
+
+    container.fit(10);
+});
+
+Q.load(['ghost.png','ciel.jpg','badGhost.png','blop.png','wall.png','littleGhost.png','game.json' /* vous pouvez aussi ajouter des assets ici, à la suite du tableau, pour en charger plusieurs */ ], function() {
     Q.sheet('my_tiles', 'wall.png', { tileW: 30, tileH: 30 }); // On crée des tiles de 30x30 à partir de l'image que l'on vient de charger et on enregistre le tout sou le nom *my_tiles*
 	Q.sheet('my_player', 'littleGhost.png', { tileW: 25, tileH: 30 }); // On crée la feuille du joueur, qui permet de décomposer les états (pour l'animer par exemple)
+	Q.sheet('badGhost', 'badGhost.png', { tileW: 25, tileH: 30 }); // N'oubliez pas de pré charger l'image qui correspond !
 	Q.animations('my_player', {
 		stand: { frames: [1], rate: 1/60, loop: true },
 		walk_left: { frames: [0], rate: 1/60 },
 		walk_right: { frames: [2], rate: 1/60 },
 		jump: { frames: [3], rate: 1/60 },
 	});
+	Q.animations('badGhost', {
+		stand: { frames: [0], rate: 1/60, flip: false, loop: true },
+		walk_left: { frames: [1], rate: 1/60, flip: false, loop: true },
+		walk_right: { frames: [2], rate: 1/60, flip: false }, // Eh oui, pour réduire le nombre d'images, il suffit de retourner celle que l'on souhaite !
+		dying: { frames: [3], rate: 1/60, flip: false }, // Et ça fonctionne aussi pour une symétrie verticale !
+	});
+	Q.sheet('end', 'blop.png', { tileW: 50, tileH: 50 });
 	
 	Q.stageScene('startGame', 0);
 	}, {
